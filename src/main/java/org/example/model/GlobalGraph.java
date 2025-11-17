@@ -1,12 +1,12 @@
 package org.example.model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class GlobalGraph {
 
-    private List<Arc> arcs = new ArrayList<>();
-    private List<Stop> stops = new ArrayList<>();
+    private Set<Arc> arcs = new HashSet<>();
+    private Set<Stop> stops = new HashSet<>();
 
     public void addArc(Arc arc) {
         arcs.add(arc);
@@ -16,6 +16,6 @@ public class GlobalGraph {
         stops.add(stop);
     }
 
-    public List<Arc> getArcs() { return arcs; }
-    public List<Stop> getStops() { return stops; }
+    public Set<Arc> getArcs() { return arcs; }
+    public Set<Stop> getStops() { return stops; }
 }

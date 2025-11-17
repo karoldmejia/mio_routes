@@ -27,6 +27,18 @@ public class Stop {
     public double getLon() { return lon; }
     public String getLongName() { return longName; }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Stop)) return false;
+        Stop stop = (Stop) o;
+        return id == stop.id;
+    }
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
+
 }
 
 

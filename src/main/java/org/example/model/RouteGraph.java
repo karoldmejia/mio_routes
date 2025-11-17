@@ -1,7 +1,9 @@
 package org.example.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class RouteGraph {
 
@@ -9,11 +11,15 @@ public class RouteGraph {
 
     private List<Arc> outboundArcs = new ArrayList<>();
     private List<Arc> inboundArcs = new ArrayList<>();
+    private Set<Stop> nodes = new HashSet<>();
+
 
     public Route getRoute() {
         return route;
     }
 
+    public void addNode(Stop s) { nodes.add(s); }
+    public Set<Stop> getNodes() { return nodes; }
     public RouteGraph(Route route) {
         this.route = route;
     }

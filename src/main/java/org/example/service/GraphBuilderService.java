@@ -48,7 +48,7 @@ public class GraphBuilderService {
     public Map<Integer, RouteGraph> buildAllGraphs() {
         Map<Integer, RouteGraph> graphs = new HashMap<>();
 
-        Map<Integer, Map<Integer, List<RouteStop>>> grouped = groupStops();
+        Map<Integer, Map<Integer, Map<Integer, List<RouteStop>>>> grouped = groupStops();
 
         for (Integer routeId : grouped.keySet()) {
             RouteGraph graph = buildGraphForRoute(routeId, grouped.get(routeId));
@@ -58,23 +58,28 @@ public class GraphBuilderService {
         return graphs;
     }
 
-    private Map<Integer, Map<Integer, List<RouteStop>>> groupStops() {
+    private Map<Integer, Map<Integer, Map<Integer, List<RouteStop>>>> groupStops() {
 
-        Map<Integer, Map<Integer, List<RouteStop>>> grouped = new HashMap<>();
+        Map<Integer, Map<Integer, Map<Integer, List<RouteStop>>>> grouped = new HashMap<>();
 
         for (RouteStop rs : routeStops) {
             int routeId = rs.getLineId();
+            int variant = rs.getVariant();
             int orientation = rs.getOrientation();
 
             grouped
                     .computeIfAbsent(routeId, r -> new HashMap<>())
+                    .computeIfAbsent(variant, v -> new HashMap<>())
                     .computeIfAbsent(orientation, o -> new ArrayList<>())
                     .add(rs);
         }
 
-        for (Map<Integer, List<RouteStop>> orientations : grouped.values()) {
-            for (List<RouteStop> list : orientations.values()) {
-                list.sort(Comparator.comparing(RouteStop::getSequence));
+        // ordenar cada lista por secuencia
+        for (var variantsMap : grouped.values()) {
+            for (var orientationMap : variantsMap.values()) {
+                for (var list : orientationMap.values()) {
+                    list.sort(Comparator.comparing(RouteStop::getSequence));
+                }
             }
         }
 
@@ -83,30 +88,37 @@ public class GraphBuilderService {
 
     private RouteGraph buildGraphForRoute(
             Integer routeId,
-            Map<Integer, List<RouteStop>> orientationMap
+            Map<Integer, Map<Integer, List<RouteStop>>> variantsMap
     ) {
         RouteGraph graph = new RouteGraph(routes.get(routeId));
 
-        for (Integer orientation : orientationMap.keySet()) {
-            List<RouteStop> stopsSeq = orientationMap.get(orientation);
+        for (Integer variant : variantsMap.keySet()) {
 
-            for (int i = 0; i < stopsSeq.size() - 1; i++) {
+            Map<Integer, List<RouteStop>> orientationMap = variantsMap.get(variant);
 
-                Stop from = stops.get(stopsSeq.get(i).getStopId());
-                Stop to = stops.get(stopsSeq.get(i + 1).getStopId());
+            for (Integer orientation : orientationMap.keySet()) {
 
-                Arc arc = new Arc(from, to, routeId);
+                List<RouteStop> seq = orientationMap.get(orientation);
 
-                if (orientation == 0) {
-                    graph.addOutboundArc(arc);
-                } else {
-                    graph.addInboundArc(arc);
+                for (int i = 0; i < seq.size() - 1; i++) {
+
+                    Stop from = stops.get(seq.get(i).getStopId());
+                    Stop to = stops.get(seq.get(i + 1).getStopId());
+
+                    Arc arc = new Arc(from, to, routeId, orientation, variant);
+
+                    graph.addNode(from);
+                    graph.addNode(to);
+
+                    if (orientation == 0) {
+                        graph.addOutboundArc(arc);
+                    } else {
+                        graph.addInboundArc(arc);
+                    }
                 }
             }
         }
 
         return graph;
     }
-
-
 }
