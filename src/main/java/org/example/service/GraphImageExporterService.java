@@ -15,8 +15,8 @@ public class GraphImageExporterService {
 
     public void exportGlobalGraph(GlobalGraph graph, String filePath) {
 
-        int width = 2000;
-        int height = 2000;
+        int width = 15000;
+        int height = 15000;
 
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -137,10 +137,10 @@ public class GraphImageExporterService {
         }
     }
 
-    public void exportRouteGraph(RouteGraph graph) {
+    public void exportRouteGraph(RouteGraph graph, String filePath) {
 
-        int width = 2000;
-        int height = 2000;
+        int width = 5000;
+        int height = 5000;
 
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -222,7 +222,6 @@ public class GraphImageExporterService {
 
         g.dispose();
 
-        String filePath = "graphs/route_" + graph.getRoute().getId() + ".jpg";
         try {
             ImageIO.write(img, "jpg", new File(filePath));
             System.out.println("Imagen guardada en: " + filePath);
