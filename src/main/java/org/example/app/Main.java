@@ -29,7 +29,7 @@ public class Main {
         exporter.exportGlobalGraph(result.getGlobalGraph(), globalFile);
 
         RouteGraph p84a = result.getGraphsByRoute().get(2301);
-        exporter.exportRouteGraph(p84a, "graphs/route_2301.jpg");
+        exporter.exportRouteGraph(p84a);
     }
 
 }

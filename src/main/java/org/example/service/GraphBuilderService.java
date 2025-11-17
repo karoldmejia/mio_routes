@@ -51,12 +51,28 @@ public class GraphBuilderService {
         Map<Integer, Map<Integer, Map<Integer, List<RouteStop>>>> grouped = groupStops();
 
         for (Integer routeId : grouped.keySet()) {
+
             RouteGraph graph = buildGraphForRoute(routeId, grouped.get(routeId));
             graphs.put(routeId, graph);
+
+            Map<String, Integer> groupCounter = new HashMap<>();
+
+            // OUTBOUND
+            for (Arc a : graph.getOutboundArcs()) {
+                String key = "var=" + a.getVariant() + ", ori=" + a.getOrientation();
+                groupCounter.put(key, groupCounter.getOrDefault(key, 0) + 1);
+            }
+
+            // INBOUND
+            for (Arc a : graph.getInboundArcs()) {
+                String key = "var=" + a.getVariant() + ", ori=" + a.getOrientation();
+                groupCounter.put(key, groupCounter.getOrDefault(key, 0) + 1);
+            }
         }
 
         return graphs;
     }
+
 
     private Map<Integer, Map<Integer, Map<Integer, List<RouteStop>>>> groupStops() {
 

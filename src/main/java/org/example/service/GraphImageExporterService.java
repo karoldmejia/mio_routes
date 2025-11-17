@@ -15,8 +15,8 @@ public class GraphImageExporterService {
 
     public void exportGlobalGraph(GlobalGraph graph, String filePath) {
 
-        int width = 15000;
-        int height = 15000;
+        int width = 2000;
+        int height = 2000;
 
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -71,10 +71,6 @@ public class GraphImageExporterService {
         }
         P proj = new P();
 
-        // ==============================================================
-        // AGRUPACIÓN REAL: routeId → variantId → orientation → arcos
-        // ==============================================================
-
         Map<Integer, Map<Integer, Map<Integer, List<Arc>>>> grouped = new HashMap<>();
 
         for (Arc a : graph.getArcs()) {
@@ -95,10 +91,6 @@ public class GraphImageExporterService {
                     new Color(r.nextInt(200), r.nextInt(200), r.nextInt(200))
             );
         }
-
-        // ==============================================================
-        // DIBUJAR ARCOS POR GRUPO (importantísimo)
-        // ==============================================================
 
         for (Integer routeId : grouped.keySet()) {
             Color c = routeColors.get(routeId);
@@ -145,10 +137,10 @@ public class GraphImageExporterService {
         }
     }
 
-    public void exportRouteGraph(RouteGraph graph, String filePath) {
+    public void exportRouteGraph(RouteGraph graph) {
 
-        int width = 12000;
-        int height = 12000;
+        int width = 2000;
+        int height = 2000;
 
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -198,9 +190,6 @@ public class GraphImageExporterService {
         }
         P proj = new P();
 
-        // -----------------------------------------
-        // 2. Dibujar arcos en color único
-        // -----------------------------------------
         g.setStroke(new BasicStroke(3.0f));
         g.setColor(Color.BLUE);
 
@@ -223,9 +212,6 @@ public class GraphImageExporterService {
             ));
         }
 
-        // -----------------------------------------
-        // 3. Dibujar nodos
-        // -----------------------------------------
         g.setColor(Color.BLACK);
         for (Stop s : graph.getNodes()) {
             int x = proj.x(s.getLon());
@@ -236,6 +222,7 @@ public class GraphImageExporterService {
 
         g.dispose();
 
+        String filePath = "graphs/route_" + graph.getRoute().getId() + ".jpg";
         try {
             ImageIO.write(img, "jpg", new File(filePath));
             System.out.println("Imagen guardada en: " + filePath);

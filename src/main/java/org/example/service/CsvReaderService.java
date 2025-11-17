@@ -74,9 +74,12 @@ public class CsvReaderService {
                 int orientation = Integer.parseInt(parts[2]);
                 int routeId = Integer.parseInt(parts[3]);
                 int stopId = Integer.parseInt(parts[4]);
+                int variant = Integer.parseInt(parts[6]);
 
                 RouteStop rs = new RouteStop(routeId, stopId, sequence, orientation);
+                rs.setVariant(variant);  // <-- importante
                 routeStops.add(rs);
+
             }
 
         } catch (IOException e) {

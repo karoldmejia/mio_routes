@@ -34,4 +34,8 @@ public class RouteStop {
     public int getStopId() {
         return stopId;
     }
+
+    public void setVariant(int variant) {
+        this.variant = variant;
+    }
 }
