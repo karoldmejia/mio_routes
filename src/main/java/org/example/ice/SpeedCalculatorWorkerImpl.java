@@ -96,8 +96,8 @@ public class SpeedCalculatorWorkerImpl implements SpeedCalculatorWorker {
                     ice.date,
                     ice.stopId,
                     ice.odometer,
-                    ice.latitude * 1_000_000,  // Convertir de vuelta a formato original
-                    ice.longitude * 1_000_000,
+                    ice.latitude,  // Convertir de vuelta a formato original
+                    ice.longitude,
                     ice.lineId,
                     ice.tripId,
                     ice.datagramDate,

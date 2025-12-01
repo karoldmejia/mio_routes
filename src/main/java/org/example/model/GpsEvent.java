@@ -28,8 +28,8 @@ public class GpsEvent {
         this.date = date;
         this.stopId = stopId;
         this.odometer = odometer;
-        this.latitude = latitude / 1_000_000.0;  // Convertir a grados decimales
-        this.longitude = longitude / 1_000_000.0;
+        this.latitude = latitude;  // Convertir a grados decimales
+        this.longitude = longitude;
         this.lineId = lineId;
         this.tripId = tripId;
         this.datagramDate = datagramDate;
@@ -62,18 +62,28 @@ public class GpsEvent {
     public double distanceTo(GpsEvent other) {
         double R = 6371000; // Radio de la Tierra en metros
 
+        // Diferencias angulares en grados
+        double dLatDeg = other.latitude - this.latitude;
+        double dLonDeg = other.longitude - this.longitude;
+
+        // Conversión a radianes
         double lat1Rad = Math.toRadians(this.latitude);
         double lat2Rad = Math.toRadians(other.latitude);
-        double deltaLat = Math.toRadians(other.latitude - this.latitude);
-        double deltaLon = Math.toRadians(other.longitude - this.longitude);
+        double deltaLat = Math.toRadians(dLatDeg);
+        double deltaLon = Math.toRadians(dLonDeg);
 
-        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        // Cálculo Haversine paso a paso
+        double sinLat = Math.sin(deltaLat / 2);
+        double sinLon = Math.sin(deltaLon / 2);
+
+        double a = sinLat * sinLat +
                 Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-                        Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+                        sinLon * sinLon;
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        return R * c;
+        double distance = R * c;
+        return distance;
     }
 
     /**

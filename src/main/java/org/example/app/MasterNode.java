@@ -66,9 +66,9 @@ public class MasterNode {
                     adapter.createProxy(Util.stringToIdentity("SpeedMaster"))
             );
 
-            System.out.println("✓ Master iniciado correctamente");
-            System.out.printf("✓ Escuchando en puerto %d%n", port);
-            System.out.println("✓ Proxy: SpeedMaster:default -p " + port);
+            System.out.println("Master iniciado correctamente");
+            System.out.printf("Escuchando en puerto %d%n", port);
+            System.out.println("Proxy: SpeedMaster:default -p " + port);
             System.out.println("\nIniciando menú interactivo...\n");
 
             // Iniciar menú en thread separado
@@ -169,9 +169,9 @@ public class MasterNode {
     private static void procesarArchivo(Scanner scanner) {
         System.out.println("\n--- Procesar Archivo ---");
         System.out.println("Archivos disponibles:");
-        System.out.println("  1. data/datagrams_1000.csv");
-        System.out.println("  2. data/datagrams_10000.csv");
-        System.out.println("  3. data/datagrams_100000.csv");
+        System.out.println("  1. data/datagrams_1M.csv");
+        System.out.println("  2. data/datagrams_10M.csv");
+        System.out.println("  3. data/datagrams_100M.csv");
         System.out.print("Selecciona (1-3) o ingresa ruta personalizada: ");
 
         String input = scanner.nextLine().trim();
@@ -179,13 +179,13 @@ public class MasterNode {
 
         switch (input) {
             case "1":
-                filePath = "data/datagrams_1000.csv";
+                filePath = "data/datagrams_1M.csv";
                 break;
             case "2":
-                filePath = "data/datagrams_10000.csv";
+                filePath = "data/datagrams_10M.csv";
                 break;
             case "3":
-                filePath = "data/datagrams_100000.csv";
+                filePath = "data/datagrams_100M.csv";
                 break;
             default:
                 filePath = input;

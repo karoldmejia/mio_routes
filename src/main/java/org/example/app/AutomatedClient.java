@@ -73,7 +73,7 @@ public class AutomatedClient {
                 master.registerWorker(workerProxy, i);
             }
 
-            System.out.println("✓ Workers registrados\n");
+            System.out.println(" Workers registrados\n");
             Thread.sleep(2000);
 
             // Iniciar procesamiento
