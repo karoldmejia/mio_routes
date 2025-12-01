@@ -1,0 +1,4 @@
+Total de arcos: 1063
+Workers activos: 6
+Archivo procesado: data/datagrams_100M.csv
+Duración total: 288,37 segundos

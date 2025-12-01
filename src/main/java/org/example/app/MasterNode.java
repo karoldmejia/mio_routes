@@ -9,6 +9,7 @@ import com.zeroc.Ice.Util;
 import org.example.ice.SpeedCalculatorMasterImpl;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Scanner;
 
@@ -194,10 +195,13 @@ public class MasterNode {
         System.out.println("\nIniciando procesamiento de: " + filePath);
         System.out.println("Esto puede tomar varios minutos...\n");
 
+        long start = 0;
+        long end = 0;
+
         try {
-            long start = System.currentTimeMillis();
+            start = System.currentTimeMillis();
             masterProxy.processFile(filePath);
-            long end = System.currentTimeMillis();
+            end = System.currentTimeMillis();
 
             System.out.println("\n✓ Procesamiento completado");
             System.out.printf("✓ Tiempo total: %.2f segundos%n", (end - start) / 1000.0);
@@ -206,7 +210,61 @@ public class MasterNode {
         } catch (Exception e) {
             System.err.println("✗ Error procesando archivo: " + e.getMessage() + "\n");
             e.printStackTrace();
+            return;
         }
+
+        // 1. Determinar tamaño del dataset
+        String sizeLabel = "UNKNOWN";
+        if (filePath.contains("1M")) sizeLabel = "1M";
+        else if (filePath.contains("10M")) sizeLabel = "10M";
+        else if (filePath.contains("100M")) sizeLabel = "100M";
+
+        // 2. Obtener número de workers activos
+        int workerCount = masterProxy.getAllStats().length;
+
+        // 3. Crear carpeta results/<size>_<workers>
+        String resultDir = "results/" + sizeLabel + "_" + workerCount + "workers";
+        new java.io.File(resultDir).mkdirs();
+
+        // 4. Guardar resultados de arcos
+        try (PrintWriter writer = new PrintWriter(new FileWriter(resultDir + "/arc_speeds.csv"))) {
+            writer.println("fromStopId,toStopId,routeId,orientation,averageSpeed,sampleCount");
+
+            ArcSpeed[] results = masterProxy.getAggregatedResults();
+            for (ArcSpeed arc : results) {
+                writer.printf("%d,%d,%d,%d,%.4f,%d%n",
+                        arc.fromStopId, arc.toStopId, arc.routeId, arc.orientation,
+                        arc.averageSpeed, arc.sampleCount);
+            }
+        } catch (IOException e) {
+            System.err.println("✗ Error guardando arc_speeds.csv: " + e.getMessage());
+        }
+
+        // 5. Guardar estadísticas de workers
+        try (PrintWriter w = new PrintWriter(new FileWriter(resultDir + "/stats.txt"))) {
+            ProcessingStats[] stats = masterProxy.getAllStats();
+
+            for (ProcessingStats s : stats) {
+                w.printf("Worker %d (%s)%n", s.nodeId, s.nodeName);
+                w.printf("  Eventos procesados: %d%n", s.eventsProcessed);
+                w.printf("  Arcos calculados: %d%n", s.arcsCalculated);
+                w.printf("  Tiempo total: %d ms%n%n", s.totalTimeMs);
+            }
+        } catch (IOException e) {
+            System.err.println("✗ Error guardando stats.txt: " + e.getMessage());
+        }
+
+        // 6. Guardar resumen general
+        try (PrintWriter w = new PrintWriter(new FileWriter(resultDir + "/summary.txt"))) {
+            w.printf("Total de arcos: %d%n", masterProxy.getAggregatedResults().length);
+            w.printf("Workers activos: %d%n", workerCount);
+            w.printf("Archivo procesado: %s%n", filePath);
+            w.printf("Duración total: %.2f segundos%n", (end - start) / 1000.0);
+        } catch (IOException e) {
+            System.err.println("✗ Error guardando summary.txt: " + e.getMessage());
+        }
+
+        System.out.println("✓ Resultados guardados automáticamente en: " + resultDir + "\n");
     }
 
     private static void mostrarEstadisticas() {

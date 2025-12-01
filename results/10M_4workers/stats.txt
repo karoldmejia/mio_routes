@@ -1,0 +1,20 @@
+Worker 1 (Worker-1)
+  Eventos procesados: 8000000
+  Arcos calculados: 26893
+  Tiempo total: 46318 ms
+
+Worker 2 (Worker-2)
+  Eventos procesados: 8000000
+  Arcos calculados: 26767
+  Tiempo total: 45770 ms
+
+Worker 3 (Worker-3)
+  Eventos procesados: 2500000
+  Arcos calculados: 8473
+  Tiempo total: 18494 ms
+
+Worker 4 (Worker-4)
+  Eventos procesados: 2500000
+  Arcos calculados: 8528
+  Tiempo total: 16107 ms
+

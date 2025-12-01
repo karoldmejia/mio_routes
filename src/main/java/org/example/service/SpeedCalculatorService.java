@@ -93,8 +93,6 @@ public class SpeedCalculatorService {
             double dist = a.distanceTo(b);
             long secs = a.secondsTo(b);
 
-            System.out.println("Par evento " + i+" → dist="+dist+"m  time="+secs+"s");
-
             if (dist < 10 || secs <= 0 || secs > 3600) {
                 continue;
             }
@@ -116,10 +114,8 @@ public class SpeedCalculatorService {
     private void identifyAndRecordArc(GpsEvent from, GpsEvent to, double speed) {
 
         int routeId = from.getLineId();
-        System.out.println("Route id: "+routeId);
 
         RouteGraph graph = routeGraphs.get(routeId);
-        System.out.println("Grafo: "+graph);
 
         if (graph == null) {
             return;
@@ -139,7 +135,6 @@ public class SpeedCalculatorService {
                         routeId, arc.getOrientation()));
 
         r.addSample(speed);
-        System.out.println("  Registro → " + key + "   speed=" + speed);
     }
 
 

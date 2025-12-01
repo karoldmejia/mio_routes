@@ -8,6 +8,7 @@ import org.example.service.DatagramReaderService;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
 
@@ -20,6 +21,8 @@ public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
     // Control de procesamiento
     private long totalProcessingTime = 0;
     private boolean processing = false;
+    private AtomicInteger batchesProcessed = new AtomicInteger(0);
+    private AtomicInteger totalBatches = new AtomicInteger(0);
 
     @Override
     public synchronized void registerWorker(String workerProxy, int nodeId, Current current) {
@@ -63,6 +66,8 @@ public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
 
         processing = true;
         aggregatedResults.clear();
+        batchesProcessed.set(0);
+        totalBatches.set(0);
 
         long startTime = System.currentTimeMillis();
 
@@ -70,63 +75,84 @@ public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
             System.out.printf("[Master] Iniciando procesamiento de: %s%n", filePath);
             System.out.printf("[Master] Workers disponibles: %d%n", workers.size());
 
-            // Leer eventos en batches
+            // Crear executor para procesamiento paralelo
+            ExecutorService executor = Executors.newFixedThreadPool(workers.size());
+            CompletionService<BatchResult> completionService =
+                    new ExecutorCompletionService<>(executor);
+
+            // Contador para round-robin de workers
+            AtomicInteger workerIndex = new AtomicInteger(0);
+            List<SpeedCalculatorWorkerPrx> workerList = new ArrayList<>(workers.values());
+
+            // Usar procesamiento por streaming
             DatagramReaderService reader = new DatagramReaderService();
             int batchSize = 10000; // Ajustable según necesidades
-            List<List<org.example.model.GpsEvent>> batches =
-                    reader.readDatagramsInBatches(filePath, batchSize);
 
-            System.out.printf("[Master] Total de batches: %d (tamaño: %d eventos)%n",
-                    batches.size(), batchSize);
+            System.out.printf("[Master] Procesando con batch size: %d%n", batchSize);
 
-            // Distribuir batches entre workers usando ThreadPool
-            ExecutorService executor = Executors.newFixedThreadPool(workers.size());
-            List<Future<BatchResult>> futures = new ArrayList<>();
+            // Usar AtomicInteger para contar batches
+            AtomicInteger batchCounter = new AtomicInteger(0);
 
-            int batchId = 0;
-            Iterator<SpeedCalculatorWorkerPrx> workerIterator =
-                    workers.values().iterator();
+            // Procesar el archivo por streaming
+            reader.processFileInBatches(filePath, batchSize, batch -> {
+                int batchId = batchCounter.incrementAndGet();
+                totalBatches.incrementAndGet();
 
-            for (List<org.example.model.GpsEvent> batch : batches) {
-                // Round-robin entre workers
-                if (!workerIterator.hasNext()) {
-                    workerIterator = workers.values().iterator();
-                }
+                // Seleccionar worker en round-robin
+                int currentIndex = workerIndex.getAndIncrement() % workerList.size();
+                SpeedCalculatorWorkerPrx worker = workerList.get(currentIndex);
 
-                SpeedCalculatorWorkerPrx worker = workerIterator.next();
-                final int currentBatchId = batchId++;
-
-                Future<BatchResult> future = executor.submit(() ->
-                        processBatchWithWorker(worker, batch, currentBatchId)
+                // Enviar batch para procesamiento asíncrono
+                completionService.submit(() ->
+                        processBatchWithWorker(worker, batch, batchId)
                 );
 
-                futures.add(future);
-            }
+                // Mostrar progreso cada 10 batches
+                if (batchId % 10 == 0) {
+                    System.out.printf("[Master] Batches enviados: %d%n", batchId);
+                }
+            });
 
-            // Esperar resultados y agregar
-            int completedBatches = 0;
-            for (Future<BatchResult> future : futures) {
+            System.out.printf("[Master] Total batches a procesar: %d%n", batchCounter.get());
+
+            // Recolectar resultados
+            int receivedResults = 0;
+            int expectedResults = batchCounter.get();
+
+            while (receivedResults < expectedResults) {
                 try {
-                    BatchResult result = future.get();
-                    aggregateResults(result.arcSpeeds);
-                    completedBatches++;
+                    Future<BatchResult> future = completionService.poll(1, TimeUnit.MINUTES);
 
-                    if (completedBatches % 10 == 0) {
-                        System.out.printf("[Master] Progreso: %d/%d batches completados%n",
-                                completedBatches, batches.size());
+                    if (future != null) {
+                        BatchResult result = future.get();
+                        aggregateResults(result.arcSpeeds);
+
+                        batchesProcessed.incrementAndGet();
+                        receivedResults++;
+
+                        if (receivedResults % 10 == 0 || receivedResults == expectedResults) {
+                            System.out.printf("[Master] Progreso: %d/%d batches completados%n",
+                                    receivedResults, expectedResults);
+                        }
+                    } else {
+                        // Timeout - verificar si hay problemas
+                        System.out.println("[Master] Timeout esperando resultados...");
                     }
                 } catch (Exception e) {
-                    System.err.println("[Master] Error procesando batch: " + e.getMessage());
+                    System.err.println("[Master] Error recolectando resultados: " + e.getMessage());
+                    receivedResults++; // Contar como procesado aunque haya error
                 }
             }
 
             executor.shutdown();
-            executor.awaitTermination(1, TimeUnit.HOURS);
+            executor.awaitTermination(30, TimeUnit.MINUTES);
 
             long endTime = System.currentTimeMillis();
             totalProcessingTime = endTime - startTime;
 
-            System.out.printf("[Master] Procesamiento completado en %d ms%n", totalProcessingTime);
+            System.out.printf("\n[Master] Procesamiento completado en %d ms%n", totalProcessingTime);
+            System.out.printf("[Master] Batches procesados: %d/%d%n",
+                    batchesProcessed.get(), totalBatches.get());
             System.out.printf("[Master] Arcos únicos calculados: %d%n", aggregatedResults.size());
 
         } catch (Exception e) {
@@ -179,10 +205,17 @@ public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
         return totalProcessingTime;
     }
 
+    public int getProcessingProgress(Current current) {
+        if (!processing || totalBatches.get() == 0) {
+            return 0;
+        }
+        return (batchesProcessed.get() * 100) / totalBatches.get();
+    }
+
     // Métodos auxiliares
 
     private BatchResult processBatchWithWorker(SpeedCalculatorWorkerPrx worker,
-                                               List<org.example.model.GpsEvent> batch,
+                                               List<GpsEvent> batch,
                                                int batchId) {
         try {
             // Convertir eventos Java a Ice
@@ -200,11 +233,11 @@ public class SpeedCalculatorMasterImpl implements SpeedCalculatorMaster {
         }
     }
 
-    private MioGraph.GpsEvent[] convertToIceEvents(List<org.example.model.GpsEvent> javaEvents) {
+    private MioGraph.GpsEvent[] convertToIceEvents(List<GpsEvent> javaEvents) {
         MioGraph.GpsEvent[] iceEvents = new MioGraph.GpsEvent[javaEvents.size()];
 
         for (int i = 0; i < javaEvents.size(); i++) {
-            org.example.model.GpsEvent java = javaEvents.get(i);
+            GpsEvent java = javaEvents.get(i);
             MioGraph.GpsEvent ice = new MioGraph.GpsEvent();
 
             ice.eventType = java.getEventType();
